@@ -28,18 +28,18 @@ fn spawn_upon_threshold(vec: &Vec<i32>, f: fn(&i32) -> i32) -> Vec<i32> {
     // consider threshold to be a computational limitation of 1 thread
     const THRESHOLD: usize = 5;
 
-    let f_caller = move |vec: &Vec<i32>| vec.iter().map(|x| f(x)).collect::<Vec<i32>>();
+    let f_caller = move |vec: Vec<i32>| vec.iter().map(|x| f(x)).collect::<Vec<i32>>();
 
     // if size is above threshold, spawn threads first, so we don't waste time
     let mut handles: Vec<JoinHandle<Vec<i32>>> = vec![];
     for i in 1..vec.len() / THRESHOLD + (vec.len() % THRESHOLD > 0) as usize {
         let chunk = vec[i * THRESHOLD..min((i + 1) * THRESHOLD, vec.len())].to_vec();
-        let handle = thread::spawn(move || f_caller(&chunk));
+        let handle = thread::spawn(move || f_caller(chunk));
         handles.push(handle);
     }
 
     // handle the first chunk of the input vector
-    let mut res: Vec<i32> = f_caller(&vec[0..min(THRESHOLD, vec.len())].to_vec());
+    let mut res: Vec<i32> = f_caller(vec[0..min(THRESHOLD, vec.len())].to_vec());
 
     // merge threads if any were spawn and concat their return values into res
     for handle in handles {
@@ -63,7 +63,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ spawn_upon_threshold, f };
+    use crate::{f, spawn_upon_threshold};
 
     #[test]
     fn test_spawn_upon_threshold_empty_vec() {
